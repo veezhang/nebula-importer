@@ -32,32 +32,36 @@ func (op OpType) String() string {
 }
 
 type Data struct {
-	Type   OpType
-	Record Record
-	Bytes  int
+	Type    OpType
+	Record  Record
+	Bytes   int
+	ReadPos int
 }
 
-func InsertData(record Record, bytes int) Data {
+func InsertData(record Record, bytes, readPos int) Data {
 	return Data{
-		Type:   INSERT,
-		Record: record,
-		Bytes:  bytes,
+		Type:    INSERT,
+		Record:  record,
+		Bytes:   bytes,
+		ReadPos: readPos,
 	}
 }
 
-func DeleteData(record Record, bytes int) Data {
+func DeleteData(record Record, bytes, readPos int) Data {
 	return Data{
-		Type:   DELETE,
-		Record: record,
-		Bytes:  bytes,
+		Type:    DELETE,
+		Record:  record,
+		Bytes:   bytes,
+		ReadPos: readPos,
 	}
 }
 
-func HeaderData(record Record, bytes int) Data {
+func HeaderData(record Record, bytes, readPos int) Data {
 	return Data{
-		Type:   HEADER,
-		Record: record,
-		Bytes:  bytes,
+		Type:    HEADER,
+		Record:  record,
+		Bytes:   bytes,
+		ReadPos: readPos,
 	}
 }
 

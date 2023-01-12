@@ -11,6 +11,7 @@ import (
 	"github.com/vesoft-inc/nebula-importer/pkg/base"
 	"github.com/vesoft-inc/nebula-importer/pkg/config"
 	"github.com/vesoft-inc/nebula-importer/pkg/logger"
+	"github.com/vesoft-inc/nebula-importer/pkg/pos"
 )
 
 const (
@@ -243,6 +244,10 @@ func (p *ClientPool) startWorker(i int) {
 			if !resp.IsSucceed() {
 				err = fmt.Errorf("Client %d fail to execute: %s, ErrMsg: %s, ErrCode: %v", i, data.Stmt, resp.GetErrorMsg(), resp.GetErrorCode())
 			}
+		}
+
+		for _, d := range data.Data {
+			pos.Remove(d.ReadPos)
 		}
 
 		if err != nil {
