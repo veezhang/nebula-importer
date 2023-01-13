@@ -7,6 +7,7 @@ import (
 	"github.com/vesoft-inc/nebula-importer/pkg/base"
 	"github.com/vesoft-inc/nebula-importer/pkg/config"
 	"github.com/vesoft-inc/nebula-importer/pkg/logger"
+	"github.com/vesoft-inc/nebula-importer/pkg/pos"
 	"github.com/vesoft-inc/nebula-importer/pkg/reader"
 )
 
@@ -88,8 +89,12 @@ func (s *StatsMgr) print(prefix string, now time.Time) {
 	avgLatency := s.Stats.TotalLatency / s.Stats.TotalBatches
 	avgReq := s.Stats.TotalReqTime / s.Stats.TotalBatches
 	rps := float64(s.Stats.TotalCount) / secs
-	logger.Log.Infof("%s: Time(%.2fs), Finished(%d), Failed(%d), Read Failed(%d), Latency AVG(%dus), Batches Req AVG(%dus), Rows AVG(%.2f/s)",
-		prefix, secs, s.Stats.TotalCount, s.Stats.NumFailed, s.Stats.NumReadFailed, avgLatency, avgReq, rps)
+	var bytesPercentage float64
+	if s.Stats.TotalBytes > 0 {
+		bytesPercentage = 100 * float64(s.Stats.TotalImportedBytes) / float64(s.Stats.TotalBytes)
+	}
+	logger.Log.Infof("%s: Time(%.2fs), ImportedBytes(%d/%d %0.2f%%), CompletedPos(%d), Finished(%d), Failed(%d), Read Failed(%d), Latency AVG(%dus), Batches Req AVG(%dus), Rows AVG(%.2f/s)",
+		prefix, secs, s.Stats.TotalImportedBytes, s.Stats.TotalBytes, bytesPercentage, pos.Top(), s.Stats.TotalCount, s.Stats.NumFailed, s.Stats.NumReadFailed, avgLatency, avgReq, rps)
 }
 
 func (s *StatsMgr) CountFileBytes(freaders []*reader.FileReader) error {
@@ -112,7 +117,7 @@ func (s *StatsMgr) CountFileBytes(freaders []*reader.FileReader) error {
 }
 
 func (s *StatsMgr) startWorker(numReadingFiles int) {
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	now := time.Now()
 	for {

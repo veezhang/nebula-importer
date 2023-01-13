@@ -15,6 +15,7 @@ import (
 	"github.com/vesoft-inc/nebula-importer/pkg/csv"
 	"github.com/vesoft-inc/nebula-importer/pkg/errors"
 	"github.com/vesoft-inc/nebula-importer/pkg/logger"
+	"github.com/vesoft-inc/nebula-importer/pkg/pos"
 )
 
 type DataFileReader interface {
@@ -41,7 +42,7 @@ func New(fileIdx int, file *config.File, cleanup bool, clientRequestChs []chan b
 	errCh chan<- base.ErrData, runnerLogger *logger.RunnerLogger) (*FileReader, error) {
 	switch strings.ToLower(*file.Type) {
 	case "csv":
-		r := csv.CSVReader{CSVConfig: file.CSV}
+		r := csv.CSVReader{CSVConfig: file.CSV, StartPos: file.StartPos}
 		reader := FileReader{
 			FileIdx:      fileIdx,
 			DataReader:   &r,
@@ -119,6 +120,12 @@ func (r *FileReader) Read() (numErrorLines int64, err error) {
 	if err != nil {
 		return numErrorLines, errors.Wrap(errors.ConfigError, err)
 	}
+	if r.File.StartPos > 0 {
+		if _, err = file.Seek(int64(r.File.StartPos), io.SeekStart); err != nil {
+			return numErrorLines, err
+		}
+	}
+
 	defer func() {
 		if err := file.Close(); err != nil {
 			logger.Log.Errorf("Fail to close opened data file: %s", *filePath)
@@ -146,6 +153,8 @@ func (r *FileReader) Read() (numErrorLines int64, err error) {
 		if err == io.EOF {
 			break
 		}
+
+		pos.Push(data.ReadPos)
 
 		lineNum++
 

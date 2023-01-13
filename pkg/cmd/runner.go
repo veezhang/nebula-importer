@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/vesoft-inc/nebula-importer/pkg/base"
 	"github.com/vesoft-inc/nebula-importer/pkg/client"
@@ -89,6 +90,16 @@ func (r *Runner) Run(yaml *config.YAMLConfig) {
 			freaders[i] = fr
 		}
 	}
+
+	go func() {
+		for {
+			if err := r.stataMgr.CountFileBytes(r.Readers); err != nil {
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+			break
+		}
+	}()
 
 	r.Readers = freaders
 	r.stataMgr = statsMgr

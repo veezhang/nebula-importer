@@ -15,6 +15,7 @@ import (
 
 type CSVReader struct {
 	CSVConfig    *config.CSVConfig
+	StartPos     int
 	reader       *csv.Reader
 	lineNum      uint64
 	rr           *recordReader
@@ -27,18 +28,22 @@ type CSVReader struct {
 type recordReader struct {
 	io.Reader
 	remainingBytes int
+	readPos        int
 }
 
 func (r *recordReader) Read(p []byte) (n int, err error) {
 	n, err = r.Reader.Read(p)
 	r.remainingBytes += n
+	r.readPos += n
 	return
 }
 
 func (r *CSVReader) InitReader(file *os.File, runnerLogger *logger.RunnerLogger) {
 	r.runnerLogger = runnerLogger
 	r.rr = &recordReader{
-		Reader: file,
+		Reader:         file,
+		remainingBytes: r.StartPos,
+		readPos:        r.StartPos,
 	}
 	r.br = bufio.NewReader(r.rr)
 	r.reader = csv.NewReader(r.br)
@@ -73,27 +78,30 @@ func (r *CSVReader) ReadLine() (base.Data, error) {
 	n := r.rr.remainingBytes - r.br.Buffered()
 	r.rr.remainingBytes -= n
 
+	readPos := r.rr.readPos - r.br.Buffered()
+
 	if *r.CSVConfig.WithHeader && r.lineNum == 1 {
 		if *r.CSVConfig.WithLabel {
-			return base.HeaderData(line[1:], n), nil
+			return base.HeaderData(line[1:], n, readPos), nil
 		} else {
-			return base.HeaderData(line, n), nil
+			return base.HeaderData(line, n, readPos), nil
 		}
 	}
 
 	if *r.CSVConfig.WithLabel {
 		switch line[0] {
 		case "+":
-			return base.InsertData(line[1:], n), nil
+			return base.InsertData(line[1:], n, readPos), nil
 		case "-":
-			return base.DeleteData(line[1:], n), nil
+			return base.DeleteData(line[1:], n, readPos), nil
 		default:
 			return base.Data{
-				Bytes: n,
+				Bytes:   n,
+				ReadPos: r.rr.readPos,
 			}, fmt.Errorf("Invalid label: %s", line[0])
 		}
 	} else {
-		return base.InsertData(line, n), nil
+		return base.InsertData(line, n, readPos), nil
 	}
 }
 

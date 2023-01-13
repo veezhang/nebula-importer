@@ -69,6 +69,7 @@ func (b *Batch) requestClient() {
 		Data:  b.buffer[:b.currentIndex],
 	}
 
+	b.buffer = make([]base.Data, b.bufferSize)
 	b.currentIndex = 0
 }
 

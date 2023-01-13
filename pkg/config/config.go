@@ -105,6 +105,7 @@ type CSVConfig struct {
 
 type File struct {
 	Path         *string    `json:"path" yaml:"path"`
+	StartPos     int        `json:"startPos" yaml:"startPos"` // the pos to start in bytes
 	FailDataPath *string    `json:"failDataPath" yaml:"failDataPath"`
 	BatchSize    *int       `json:"batchSize" yaml:"batchSize"`
 	Limit        *int       `json:"limit" yaml:"limit"`
@@ -376,6 +377,10 @@ func (f *File) validateAndReset(dir, prefix string) error {
 	}
 
 	if f.CSV != nil {
+		if f.StartPos > 0 {
+			b := false
+			f.CSV.WithHeader = &b
+		}
 		err := f.CSV.validateAndReset(fmt.Sprintf("%s.csv", prefix))
 		if err != nil {
 			return err
